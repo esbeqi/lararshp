@@ -21,7 +21,7 @@
         ->value('role.nama_role');
     @endphp
 
-    @if($role === 'Admin')
+    @if($role === 'Administrator')
         @include('layouts.lte.sidebar')
     @endif
 

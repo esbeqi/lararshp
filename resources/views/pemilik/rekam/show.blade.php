@@ -6,7 +6,7 @@
   <section class="content-header">
     <div class="container-fluid">
       <h1>Detail Rekam Medis</h1>
-      <p class="text-muted">#{{ $antrian->idrekam_medis }} — Pet: {{ $antrian->nama_pet }}</p>
+      <p class="text-muted">#{{ $header->idrekam_medis ?? '-' }} — Pet: {{ $header->nama_pet ?? '-' }}</p>
     </div>
   </section>
 
@@ -16,30 +16,27 @@
       @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
       @if(session('error')) <div class="alert alert-danger">{{ session('error') }}</div> @endif
 
-      {{-- Header --}}
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title">Header Rekam Medis</h3></div>
         <div class="card-body">
-          <table class="table table-bordered" style="max-width:800px">
+          <table class="table table-bordered" style="max-width:900px">
             <tbody>
-              <tr><th width="220">No. Urut</th><td>{{ $antrian->no_urut ?? '-' }}</td></tr>
-              <tr><th>Pet</th><td>{{ $antrian->nama_pet ?? '-' }}</td></tr>
-              <tr><th>Pemilik</th><td>{{ $antrian->nama_pemilik ?? '-' }}</td></tr>
-              <tr><th>Dokter Pemeriksa</th><td>{{ $antrian->nama_dokter ?? '-' }}</td></tr>
-              <tr><th>Anamnesa</th><td>{{ $antrian->anamnesa ?? '-' }}</td></tr>
-              <tr><th>Temuan Klinis</th><td>{{ $antrian->temuan_klinis ?? '-' }}</td></tr>
-              <tr><th>Diagnosa</th><td>{{ $antrian->diagnosa ?? '-' }}</td></tr>
-              <tr><th>Tanggal</th><td>{{ $antrian->created_at ? \Carbon\Carbon::parse($antrian->created_at)->format('d/m/Y H:i') : '-' }}</td></tr>
+              <tr><th style="width:220px">No. Urut</th><td>{{ $header->no_urut ?? '-' }}</td></tr>
+              <tr><th>Pet</th><td>{{ $header->nama_pet ?? '-' }}</td></tr>
+              <tr><th>Dokter Pemeriksa</th><td>{{ $header->nama_dokter ?? '-' }}</td></tr>
+              <tr><th>Anamnesa</th><td>{{ $header->anamnesa ?? '-' }}</td></tr>
+              <tr><th>Temuan Klinis</th><td>{{ $header->temuan_klinis ?? '-' }}</td></tr>
+              <tr><th>Diagnosa</th><td>{{ $header->diagnosa ?? '-' }}</td></tr>
+              <tr><th>Tanggal</th><td>{{ !empty($header->created_at) ? \Carbon\Carbon::parse($header->created_at)->format('d/m/Y H:i') : '-' }}</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {{-- Detail tindakan --}}
       <div class="card">
         <div class="card-header"><h3 class="card-title">Detail Tindakan</h3></div>
         <div class="card-body">
-          @if($detail->isEmpty())
+          @if(empty($detail) || $detail->isEmpty())
             <div class="text-center text-muted">Belum ada tindakan tercatat.</div>
           @else
             <div class="table-responsive">
@@ -52,26 +49,17 @@
                     <th>Kategori</th>
                     <th>Kategori Klinis</th>
                     <th>Keterangan</th>
-                    <th>Tanggal</th>
                   </tr>
                 </thead>
                 <tbody>
                   @foreach($detail as $d)
                     <tr>
                       <td>{{ $loop->iteration }}</td>
-                      <td>{{ $d->kode }}</td>
-                      <td>{{ $d->deskripsi_tindakan_terapi }}</td>
-                      <td>{{ $d->nama_kategori }}</td>
-                      <td>{{ $d->nama_kategori_klinis }}</td>
-                      <td>{{ $d->keterangan }}</td>
-                      {{-- tanggal tindakan: jika ada created_at di detail, tampilkan; kalau tidak, pakai header created_at --}}
-                      <td>
-                        @if(!empty($d->created_at))
-                          {{ \Carbon\Carbon::parse($d->created_at)->format('d/m/Y H:i') }}
-                        @else
-                          {{ $antrian->created_at ? \Carbon\Carbon::parse($antrian->created_at)->format('d/m/Y H:i') : '-' }}
-                        @endif
-                      </td>
+                      <td>{{ $d->kode ?? '-' }}</td>
+                      <td>{{ $d->deskripsi_tindakan_terapi ?? '-' }}</td>
+                      <td>{{ $d->nama_kategori ?? '-' }}</td>
+                      <td>{{ $d->nama_kategori_klinis ?? '-' }}</td>
+                      <td>{{ $d->keterangan ?? '-' }}</td>
                     </tr>
                   @endforeach
                 </tbody>
@@ -79,7 +67,7 @@
             </div>
           @endif
 
-          <a href="{{ url()->previous() }}" class="btn btn-secondary mt-3">Kembali</a>
+          <a href="{{ route('pemilik.pet.rekam.index', $header->idpet ?? null) }}" class="btn btn-secondary mt-3">Kembali</a>
         </div>
       </div>
 

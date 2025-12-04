@@ -45,13 +45,6 @@
         crossorigin="anonymous"
     />
 
-    <!-- Bootstrap Icons -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
-        crossorigin="anonymous"
-    />
-
     <!-- Required Plugin (AdminLTE) - LOCAL FIX -->
     <link rel="stylesheet" href="{{ asset('assets/css/adminlte.css') }}" />
 
@@ -71,7 +64,14 @@
         crossorigin="anonymous"
     />
 
-    <!-- Bootstrap Icons (CDN) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- OPTIONAL: keep Bootstrap Icons (one link only) -->
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+        crossorigin="anonymous">
 
+    <!-- ADD: Font Awesome (so `fas fa-*` icons render reliably) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+
+    <!-- Any other head elements -->
+    @stack('head')
 </head>

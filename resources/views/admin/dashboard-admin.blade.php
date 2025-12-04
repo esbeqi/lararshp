@@ -1,213 +1,147 @@
 @extends('layouts.lte.main')
 
+@section('title', 'Dashboard Admin')
+
 @section('content')
-<!--begin::App Content Header-->
 <div class="app-content-header">
     <div class="container-fluid">
         <div class="row">
             <div class="col-sm-6">
-                <h3 class="mb-0">Dashboard</h3>
+                <h3 class="mb-0">Dashboard Admin</h3>
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
-                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
                 </ol>
             </div>
         </div>
     </div>
 </div>
-<!--end::App Content Header-->
 
-<!--begin::App Content-->
 <div class="app-content">
     <div class="container-fluid">
-        <!--begin::Row Widgets-->
         <div class="row">
-            <!-- Widget 1 -->
+            <!-- Total Pemilik -->
             <div class="col-lg-3 col-6">
                 <div class="small-box text-bg-primary">
                     <div class="inner">
-                        <h3>150</h3>
-                        <p>New Orders</p>
+                        <h3>{{ \Illuminate\Support\Facades\DB::table('pemilik')->count() }}</h3>
+                        <p>Total Pemilik</p>
                     </div>
-                    <img src="{{ asset('assets/img/shopping-cart.svg') }}" class="small-box-icon" alt="icon" />
-                    <a href="#" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                        More info <i class="bi bi-link-45deg"></i>
-                    </a>
+                    <div class="small-box-icon">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <a href="{{ route('admin.pemilik.index') }}" class="small-box-footer link-light">Lihat Data</a>
                 </div>
             </div>
-            <!-- Widget 2 -->
+
+            <!-- Total Pet -->
             <div class="col-lg-3 col-6">
                 <div class="small-box text-bg-success">
                     <div class="inner">
-                        <h3>53<sup class="fs-5">%</sup></h3>
-                        <p>Bounce Rate</p>
+                        <h3>{{ \Illuminate\Support\Facades\DB::table('pet')->count() }}</h3>
+                        <p>Total Hewan (Pet)</p>
                     </div>
-                    <img src="{{ asset('assets/img/chart-bar.svg') }}" class="small-box-icon" alt="icon" />
-                    <a href="#" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                        More info <i class="bi bi-link-45deg"></i>
-                    </a>
+                    <div class="small-box-icon">
+                        <i class="fas fa-paw fa-2x"></i>
+                    </div>
+                    <a href="{{ route('admin.pet.index') }}" class="small-box-footer link-light">Lihat Data</a>
                 </div>
             </div>
-            <!-- Widget 3 -->
+
+            <!-- Dokter Aktif -->
             <div class="col-lg-3 col-6">
                 <div class="small-box text-bg-warning">
                     <div class="inner">
-                        <h3>44</h3>
-                        <p>User Registrations</p>
+                        <h3>{{ \Illuminate\Support\Facades\DB::table('role_user')->join('role','role_user.idrole','=','role.idrole')->where('role.nama_role','Dokter')->count() }}</h3>
+                        <p>Dokter Aktif</p>
                     </div>
-                    <img src="{{ asset('assets/img/user-plus.svg') }}" class="small-box-icon" alt="icon" />
-                    <a href="#" class="small-box-footer link-dark link-underline-opacity-0 link-underline-opacity-50-hover">
-                        More info <i class="bi bi-link-45deg"></i>
-                    </a>
+                    <div class="small-box-icon">
+                        <i class="fas fa-user-md fa-2x"></i>
+                    </div>
+                    <a href="{{ route('admin.user.index') }}" class="small-box-footer link-dark">Info Dokter</a>
                 </div>
             </div>
-            <!-- Widget 4 -->
+
+            <!-- Antrian Hari Ini -->
             <div class="col-lg-3 col-6">
                 <div class="small-box text-bg-danger">
                     <div class="inner">
-                        <h3>65</h3>
-                        <p>Unique Visitors</p>
+                        <h3>{{ \Illuminate\Support\Facades\DB::table('temu_dokter')->whereDate('waktu_daftar', now()->toDateString())->count() }}</h3>
+                        <p>Antrian Hari Ini</p>
                     </div>
-                    <img src="{{ asset('assets/img/globe.svg') }}" class="small-box-icon" alt="icon" />
-                    <a href="#" class="small-box-footer link-light link-underline-opacity-0 link-underline-opacity-50-hover">
-                        More info <i class="bi bi-link-45deg"></i>
-                    </a>
+                    <div class="small-box-icon">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <a href="{{ route('resepsionis.temu-dokter.index') }}" class="small-box-footer link-light">Kelola Antrian</a>
                 </div>
             </div>
         </div>
-        <!--end::Row Widgets-->
 
-        <!--begin::Row Charts & Chat-->
-        <div class="row">
-            <!-- Left Col -->
-            <div class="col-lg-7 connectedSortable">
-                <!-- Sales Chart -->
-                <div class="card mb-4">
-                    <div class="card-header"><h3 class="card-title">Sales Value</h3></div>
-                    <div class="card-body">
-                        <div id="revenue-chart" style="height: 300px;"></div>
-                    </div>
-                </div>
+        <!-- contoh panel ringkasan / tabel -->
+        <div class="row mt-3">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Antrian Hari Ini (Preview)</h3></div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px">No Urut</th>
+                                    <th>Hewan</th>
+                                    <th>Pemilik</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $preview = \Illuminate\Support\Facades\DB::table('temu_dokter as t')
+                                        ->join('pet as p','t.idpet','=','p.idpet')
+                                        ->leftJoin('pemilik as pm','p.idpemilik','=','pm.idpemilik')
+                                        ->leftJoin('user as u','pm.iduser','=','u.iduser')
+                                        ->whereDate('t.waktu_daftar', now()->toDateString())
+                                        ->orderBy('t.no_urut')
+                                        ->limit(6)
+                                        ->get();
+                                @endphp
 
-                <!-- Direct Chat -->
-                <div class="card direct-chat direct-chat-primary mb-4">
-                    <div class="card-header">
-                        <h3 class="card-title">Direct Chat</h3>
-                        <div class="card-tools">
-                            <span class="badge text-bg-primary">3</span>
-                            <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
-                                <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-                                <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-                            </button>
-                            <button type="button" class="btn btn-tool" data-lte-toggle="chat-pane">
-                                <i class="bi bi-chat-text-fill"></i>
-                            </button>
-                            <button type="button" class="btn btn-tool" data-lte-toggle="card-remove">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- Messages -->
-                        <div class="direct-chat-messages">
-                            <div class="direct-chat-msg">
-                                <div class="direct-chat-infos clearfix">
-                                    <span class="direct-chat-name float-start">Alexander Pierce</span>
-                                    <span class="direct-chat-timestamp float-end">23 Jan 2:00 pm</span>
-                                </div>
-                                <img class="direct-chat-img" src="{{ asset('assets/img/user1-128x128.jpg') }}" alt="User Image">
-                                <div class="direct-chat-text">Is this template really for free? That's unbelievable!</div>
-                            </div>
-                            <div class="direct-chat-msg end">
-                                <div class="direct-chat-infos clearfix">
-                                    <span class="direct-chat-name float-end">Sarah Bullock</span>
-                                    <span class="direct-chat-timestamp float-start">23 Jan 2:05 pm</span>
-                                </div>
-                                <img class="direct-chat-img" src="{{ asset('assets/img/user3-128x128.jpg') }}" alt="User Image">
-                                <div class="direct-chat-text">You better believe it!</div>
-                            </div>
-                        </div>
-
-                        <!-- Contacts -->
-                        <div class="direct-chat-contacts">
-                            <ul class="contacts-list">
-                                <li>
-                                    <a href="#">
-                                        <img class="contacts-list-img" src="{{ asset('assets/img/user1-128x128.jpg') }}" alt="User Avatar">
-                                        <div class="contacts-list-info">
-                                            <span class="contacts-list-name">
-                                                Count Dracula
-                                                <small class="contacts-list-date float-end">2/28/2023</small>
-                                            </span>
-                                            <span class="contacts-list-msg">How have you been? I was...</span>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#">
-                                        <img class="contacts-list-img" src="{{ asset('assets/img/user7-128x128.jpg') }}" alt="User Avatar">
-                                        <div class="contacts-list-info">
-                                            <span class="contacts-list-name">
-                                                Sarah Doe
-                                                <small class="contacts-list-date float-end">2/23/2023</small>
-                                            </span>
-                                            <span class="contacts-list-msg">I will be waiting for...</span>
-                                        </div>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <form action="#" method="post">
-                            <div class="input-group">
-                                <input type="text" name="message" placeholder="Type Message ..." class="form-control" />
-                                <span class="input-group-append">
-                                    <button type="button" class="btn btn-primary">Send</button>
-                                </span>
-                            </div>
-                        </form>
+                                @forelse($preview as $row)
+                                    <tr>
+                                        <td>{{ $row->no_urut }}</td>
+                                        <td>{{ $row->nama ?? '-' }}</td>
+                                        <td>{{ $row->nama ?? ($row->nama_pemilik ?? '-') }}</td>
+                                        <td>
+                                            @if($row->status === 'M') <span class="badge bg-warning">Menunggu</span>
+                                            @elseif($row->status === 'S') <span class="badge bg-success">Selesai</span>
+                                            @elseif($row->status === 'B') <span class="badge bg-danger">Batal</span>
+                                            @else <span class="badge bg-secondary">{{ $row->status }}</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted">Belum ada antrian hari ini</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-            <!-- Right Col -->
-            <div class="col-lg-5 connectedSortable">
-                <div class="card text-white bg-primary bg-gradient border-primary mb-4">
-                    <div class="card-header border-0">
-                        <h3 class="card-title">Sales Value</h3>
-                        <div class="card-tools">
-                            <button type="button" class="btn btn-primary btn-sm" data-lte-toggle="card-collapse">
-                                <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
-                                <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
-                            </button>
-                        </div>
-                    </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Informasi Penting</h3></div>
                     <div class="card-body">
-                        <div id="world-map" style="height: 220px;"></div>
-                    </div>
-                    <div class="card-footer border-0">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div id="sparkline-1" class="text-dark"></div>
-                                <div class="text-white">Visitors</div>
-                            </div>
-                            <div class="col-4">
-                                <div id="sparkline-2" class="text-dark"></div>
-                                <div class="text-white">Online</div>
-                            </div>
-                            <div class="col-4">
-                                <div id="sparkline-3" class="text-dark"></div>
-                                <div class="text-white">Sales</div>
-                            </div>
-                        </div>
+                        <ul>
+                            <li>Periksa data pemilik dan hewan sebelum membuat transaksi antrian.</li>
+                            <li>Antrian otomatis diberi nomor urut berdasarkan hari.</li>
+                            <li>Gunakan menu Master Data untuk mengelola referensi.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
-        <!--end::Row Charts & Chat-->
+
     </div>
 </div>
-<!--end::App Content-->
 @endsection

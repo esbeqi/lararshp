@@ -25,7 +25,7 @@
                 <tbody>
                   <tr><th width="200">Nama</th><td>{{ $pet->nama ?? '-' }}</td></tr>
                   <tr><th>Jenis Hewan</th><td>{{ $pet->nama_jenis_hewan ?? ($pet->jenis_hewan ?? '-') }}</td></tr>
-                  <tr><th>Ras</th><td>{{ $pet->nama_ras_hewan ?? ($pet->nama_ras ?? '-') }}</td></tr>
+                  <tr><th>Ras</th><td>{{ $pet->nama_ras ?? ($pet->ras ?? '-') }}</td></tr>
                   <tr><th>Tanggal Lahir</th><td>{{ $pet->tanggal_lahir ? \Carbon\Carbon::parse($pet->tanggal_lahir)->format('d/m/Y') : '-' }}</td></tr>
                   <tr><th>Jenis Kelamin</th><td>{{ $pet->jenis_kelamin ?? '-' }}</td></tr>
                   <tr><th>Warna</th><td>{{ $pet->warna ?? '-' }}</td></tr>
@@ -42,9 +42,9 @@
           <div class="card mb-3">
             <div class="card-header"><h3 class="card-title">Informasi Pemilik</h3></div>
             <div class="card-body">
-              <p>Nama Pemilik: {{ $pet->pemilik_nama ?? $pet->pemilik_nama ?? '-' }}</p>
-              <p>No. HP: {{ $pet->pemilik_no_hp ?? '-' }}</p>
-              <p>Email: {{ $pet->pemilik_email ?? '-' }}</p>
+              <p><strong>Nama Pemilik:</strong> {{ $pet->pemilik_nama ?? '-' }}</p>
+              <p><strong>No. WA:</strong> {{ $pet->pemilik_no_wa ?? '-' }}</p>
+              <p><strong>Email:</strong> {{ $pet->pemilik_email ?? '-' }}</p>
             </div>
           </div>
         </div>

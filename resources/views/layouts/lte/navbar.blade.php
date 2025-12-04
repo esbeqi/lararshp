@@ -171,7 +171,7 @@
                     <img src="{{ asset('assets/img/user2-160x160.jpg') }}"
                          class="user-image rounded-circle shadow"
                          alt="User Image">
-                    <span class="d-none d-md-inline">Alexander Pierce</span>
+                    <span class="d-none d-md-inline">{{ auth()->check() ? auth()->user()->nama : 'User' }}</span>
                 </a>
 
                 <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
@@ -181,8 +181,8 @@
                              class="rounded-circle shadow"
                              alt="User Image">
                         <p>
-                            Alexander Pierce - Web Developer
-                            <small>Member since Nov. 2023</small>
+                            {{ auth()->check() ? auth()->user()->nama : 'User' }}
+                            <small>{{ auth()->check() ? auth()->user()->email : '' }}</small>
                         </p>
                     </li>
 
@@ -195,8 +195,18 @@
                     </li>
 
                     <li class="user-footer">
-                        <a href="#" class="btn btn-default btn-flat">Profile</a>
-                        <a href="#" class="btn btn-default btn-flat float-end">Sign out</a>
+                        {{-- Jika kamu punya route profil valid suatu saat, tinggal uncomment dan ganti --}}
+                        {{-- <a href="{{ $profileUrl ?? '#' }}" class="btn btn-default btn-flat">Profile</a> --}}
+
+                        <!-- Logout (POST) -->
+                        <a href="#" class="btn btn-default btn-flat float-end"
+                           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                            Logout
+                        </a>
+
+                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                            @csrf
+                        </form>
                     </li>
                 </ul>
             </li>

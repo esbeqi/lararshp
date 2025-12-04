@@ -51,13 +51,12 @@
               <p>Janji Hari Ini</p>
             </div>
             <div class="small-box-footer">
-              <a href="{{ route('pemilik.pet.index') }}" class="link-dark">Kelola Janji →</a>
+              <a href="{{ route('pemilik.pet.index') }}" class="link-dark">Lihat Janji →</a>
             </div>
           </div>
         </div>
       </div>
 
-      {{-- Daftar pet singkat --}}
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Daftar Pet Saya</h3>

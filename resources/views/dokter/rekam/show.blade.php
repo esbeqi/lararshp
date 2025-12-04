@@ -4,75 +4,73 @@
 
 @section('content')
 <div class="content-wrapper">
-    <section class="content-header"><div class="container-fluid"><h1>Detail Rekam Medis</h1></div></section>
-    <section class="content">
-        <div class="container-fluid">
-            @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@elseif(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+  <section class="content-header">
+    <div class="container-fluid">
+      <h1>Detail Rekam Medis - {{ $rekam->pet_nama ?? '-' }}</h1>
+      <p>Pemilik: {{ $rekam->pemilik_nama ?? '-' }}</p>
+      <p>Dokter Pemeriksa: {{ $rekam->nama_dokter ?? '-' }}</p>
+    </div>
+  </section>
 
-            <div class="card mb-3">
-                <div class="card-header"><h3 class="card-title">Info Rekam</h3></div>
-                <div class="card-body">
-                    <p><strong>Pet:</strong> {{ $rekam->pet_nama ?? '-' }} | <strong>No Urut:</strong> {{ $rekam->no_urut ?? '-' }}</p>
-                    <p><strong>Tanggal:</strong> {{ $rekam->created_at }}</p>
-                    <p><strong>Anamnesa:</strong> {{ $rekam->anamnesa }}</p>
-                    <p><strong>Temuan Klinis:</strong> {{ $rekam->temuan_klinis }}</p>
-                    <p><strong>Diagnosa:</strong> {{ $rekam->diagnosa }}</p>
-                </div>
-            </div>
+  <section class="content">
+    <div class="container-fluid">
 
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">Detail Tindakan</h3>
-                </div>
-                <div class="card-body">
-                    @if($detail->isEmpty())
-                        <p class="text-muted">Belum ada tindakan dicatat.</p>
-                    @else
-                        <table class="table table-bordered">
-                            <thead><tr><th>#</th><th>Kode</th><th>Deskripsi</th><th>Catatan</th><th style="width:140px">Aksi</th></tr></thead>
-                            <tbody>
-                                @foreach($detail as $d)
-                                    <tr>
-                                        <td>{{ $d->iddetail_rekam_medis }}</td>
-                                        <td>{{ $d->kode }}</td>
-                                        <td>{{ \Illuminate\Support\Str::limit($d->deskripsi_tindakan_terapi,60) }}</td>
-                                        <td>{{ $d->detail }}</td>
-                                        <td>
-                                            <a href="{{ route('dokter.detail.edit', [$rekam->idrekam_medis, $d->iddetail_rekam_medis]) }}" class="btn btn-sm btn-warning">Edit</a>
-                                            <form action="{{ route('dokter.detail.destroy', [$rekam->idrekam_medis, $d->iddetail_rekam_medis]) }}" method="POST" style="display:inline-block;">
-                                                @csrf @method('DELETE')
-                                                <button class="btn btn-sm btn-danger" onclick="return confirm('Hapus tindakan ini?')">Hapus</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
-
-                    <hr>
-                    <h5>Tambah Tindakan</h5>
-                    <form action="{{ route('dokter.detail.store', $rekam->idrekam_medis) }}" method="POST">
-                        @csrf
-                        <div class="mb-3">
-                            <label class="form-label">Kode Tindakan</label>
-                            <select name="idkode_tindakan_terapi" class="form-control" required>
-                                @foreach($kodes as $k)
-                                    <option value="{{ $k->idkode_tindakan_terapi }}">{{ $k->kode }} — {{ \Illuminate\Support\Str::limit($k->deskripsi_tindakan_terapi,60) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Catatan / Detail</label>
-                            <textarea name="detail" class="form-control" rows="3"></textarea>
-                        </div>
-                        <button class="btn btn-primary">Simpan</button>
-                    </form>
-
-                </div>
-            </div>
-
+      {{-- HEADER --}}
+      <div class="card mb-4">
+        <div class="card-header"><h3 class="card-title">Header Rekam Medis</h3></div>
+        <div class="card-body">
+          <table class="table table-borderless">
+            <tr><th style="width:200px">No. Urut</th><td>{{ $rekam->no_urut ?? '-' }}</td></tr>
+            <tr><th>Tanggal</th><td>{{ isset($rekam->created_at) ? \Carbon\Carbon::parse($rekam->created_at)->format('Y-m-d H:i') : '-' }}</td></tr>
+            <tr><th>Anamnesa</th><td>{{ $rekam->anamnesa ?? '-' }}</td></tr>
+            <tr><th>Temuan Klinis</th><td>{{ $rekam->temuan_klinis ?? '-' }}</td></tr>
+            <tr><th>Diagnosa</th><td>{{ $rekam->diagnosa ?? '-' }}</td></tr>
+          </table>
         </div>
-    </section>
+      </div>
+
+      {{-- DETAIL TINDAKAN (read-only) --}}
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Daftar Tindakan</h3>
+        </div>
+        <div class="card-body">
+          @if($detail->isEmpty())
+            <p class="text-muted">Belum ada tindakan tercatat.</p>
+          @else
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:60px">#</th>
+                  <th>Kode</th>
+                  <th>Tindakan</th>
+                  <th>Kategori</th>
+                  <th>Kategori Klinis</th>
+                  <th>Keterangan</th>
+                  <th style="width:160px">Waktu</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach($detail as $i => $d)
+                <tr>
+                  <td>{{ $i + 1 }}</td>
+                  <td>{{ $d->kode ?? '-' }}</td>
+                  <td>{{ $d->tindakan ?? ($d->deskripsi_tindakan_terapi ?? '-') }}</td>
+                  <td>{{ $d->nama_kategori ?? '-' }}</td>
+                  <td>{{ $d->nama_kategori_klinis ?? '-' }}</td>
+                  <td>{{ $d->keterangan ?? '-' }}</td>
+                  <td>{{ isset($d->created_at) ? \Carbon\Carbon::parse($d->created_at)->format('Y-m-d H:i') : '-' }}</td>
+                </tr>
+                @endforeach
+              </tbody>
+            </table>
+          @endif
+        </div>
+      </div>
+
+      <a href="{{ route('dokter.rekam.index') }}" class="btn btn-secondary">Kembali</a>
+
+    </div>
+  </section>
 </div>
 @endsection

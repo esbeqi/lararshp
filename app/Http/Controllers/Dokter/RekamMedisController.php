@@ -5,60 +5,90 @@ namespace App\Http\Controllers\Dokter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Exception;
 
 class RekamMedisController extends Controller
 {
-    public function index()
+    /**
+     * INDEX — list rekam medis (paginated)
+     */
+    public function index(Request $request)
     {
-        $user = auth()->user();
-
-        $roleUser = DB::table('role_user')
-            ->join('role', 'role_user.idrole', '=', 'role.idrole')
-            ->where('role_user.iduser', $user->iduser)
-            ->where('role.nama_role', 'LIKE', 'Dokter')
-            ->select('role_user.*')
-            ->first();
-
-        if (! $roleUser) {
-            return redirect()->route('home')->with('error', 'Akses tidak tersedia.');
-        }
-
-        $idrole_user = $roleUser->idrole_user;
-
         $rekam = DB::table('rekam_medis as r')
-            ->join('temu_dokter as t','r.idreservasi_dokter','=','t.idreservasi_dokter')
-            ->join('pet as p','t.idpet','=','p.idpet')
-            ->select('r.idrekam_medis','r.created_at','r.anamnesa','r.temuan_klinis','r.diagnosa','p.nama as pet_nama','t.no_urut','t.waktu_daftar')
-            ->where('r.dokter_pemeriksa', $idrole_user)
-            ->orderBy('r.created_at','desc')
-            ->paginate(20);
+            ->join('temu_dokter as t', 'r.idreservasi_dokter', '=', 't.idreservasi_dokter')
+            ->join('pet as p', 't.idpet', '=', 'p.idpet')
+            ->leftJoin('pemilik as pm', 'p.idpemilik', '=', 'pm.idpemilik')
+            ->leftJoin('user as u', 'pm.iduser', '=', 'u.iduser')
+            ->leftJoin('user as d', 'r.dokter_pemeriksa', '=', 'd.iduser')
+            ->select(
+                'r.idrekam_medis',
+                'r.created_at',
+                'p.nama as pet_nama',
+                'u.nama as pemilik_nama',
+                'd.nama as nama_dokter',
+                'r.anamnesa',
+                'r.temuan_klinis',
+                'r.diagnosa'
+            )
+            ->orderBy('r.idrekam_medis', 'desc')
+            ->paginate(15);
 
         return view('dokter.rekam.index', compact('rekam'));
     }
 
-    public function show($idrekam)
+    /**
+     * SHOW — header + detail tindakan (read-only)
+     */
+    public function show($id)
     {
+        // header + pet/pemilik/dokter
         $rekam = DB::table('rekam_medis as r')
-            ->join('temu_dokter as t','r.idreservasi_dokter','=','t.idreservasi_dokter')
-            ->join('pet as p','t.idpet','=','p.idpet')
-            ->leftJoin('pemilik as pm','p.idpemilik','=','pm.idpemilik')
-            ->leftJoin('user as u','pm.iduser','=','u.iduser')
-            ->select('r.*','t.no_urut','t.waktu_daftar','p.nama as pet_nama','p.idpet','u.nama as pemilik_nama','pm.no_wa')
-            ->where('r.idrekam_medis',$idrekam)
+            ->join('temu_dokter as t', 'r.idreservasi_dokter', '=', 't.idreservasi_dokter')
+            ->join('pet as p', 't.idpet', '=', 'p.idpet')
+            ->leftJoin('pemilik as pm', 'p.idpemilik', '=', 'pm.idpemilik')
+            ->leftJoin('user as u', 'pm.iduser', '=', 'u.iduser')
+            ->leftJoin('user as d', 'r.dokter_pemeriksa', '=', 'd.iduser')
+            ->select(
+                'r.*',
+                'p.nama as pet_nama',
+                'p.tanggal_lahir as pet_tgl_lahir',
+                'u.nama as pemilik_nama',
+                'u.email as pemilik_email',
+                'd.nama as nama_dokter',
+                't.no_urut'
+            )
+            ->where('r.idrekam_medis', $id)
             ->first();
 
         if (! $rekam) {
-            return redirect()->route('dokter.rekam.index')->with('error','Rekam medis tidak ditemukan.');
+            return redirect()->route('dokter.rekam.index')->with('error', 'Rekam medis tidak ditemukan.');
         }
 
+        // defensive select: cek apakah kolom 'detail' dan 'created_at' ada di tabel detail_rekam_medis
+        $hasDetailCol = Schema::hasColumn('detail_rekam_medis', 'detail');
+        $hasCreatedAt = Schema::hasColumn('detail_rekam_medis', 'created_at');
+
+        $select = [
+            'd.iddetail_rekam_medis',
+            'kt.kode',
+            'kt.deskripsi_tindakan_terapi as tindakan',
+            'kg.nama_kategori',
+            'kk.nama_kategori_klinis',
+        ];
+
+        $select[] = $hasDetailCol ? DB::raw('d.detail as keterangan') : DB::raw('NULL as keterangan');
+        $select[] = $hasCreatedAt ? 'd.created_at' : DB::raw('NULL as created_at');
+
         $detail = DB::table('detail_rekam_medis as d')
-            ->leftJoin('kode_tindakan_terapi as k','d.idkode_tindakan_terapi','=','k.idkode_tindakan_terapi')
-            ->where('d.idrekam_medis',$idrekam)
-            ->select('d.*','k.kode','k.deskripsi_tindakan_terapi')
+            ->join('kode_tindakan_terapi as kt', 'd.idkode_tindakan_terapi', '=', 'kt.idkode_tindakan_terapi')
+            ->leftJoin('kategori as kg', 'kt.idkategori', '=', 'kg.idkategori')
+            ->leftJoin('kategori_klinis as kk', 'kt.idkategori_klinis', '=', 'kk.idkategori_klinis')
+            ->select($select)
+            ->where('d.idrekam_medis', $id)
+            ->orderBy('d.iddetail_rekam_medis', 'desc')
             ->get();
 
-        $kodes = DB::table('kode_tindakan_terapi')->orderBy('kode')->get();
-
-        return view('dokter.rekam.show', compact('rekam','detail','kodes'));
+        return view('dokter.rekam.show', compact('rekam', 'detail'));
     }
 }

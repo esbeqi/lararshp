@@ -46,7 +46,7 @@
                       <td>{{ $loop->iteration }}</td>
                       <td>{{ $p->nama ?? '-' }}</td>
                       <td>{{ $p->nama_jenis_hewan ?? ($p->jenis_hewan ?? '-') }}</td>
-                      <td>{{ $p->nama_ras_hewan ?? ($p->nama_ras ?? '-') }}</td>
+                      <td>{{ $p->nama_ras ?? ($p->ras ?? '-') }}</td>
                       <td>{{ $p->tanggal_lahir ? \Carbon\Carbon::parse($p->tanggal_lahir)->format('d/m/Y') : '-' }}</td>
                       <td>
                         <a href="{{ route('pemilik.pet.show', $p->idpet) }}" class="btn btn-sm btn-info">Detail</a>
