@@ -4,15 +4,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Kategori;
-use Exception;
+use Illuminate\Support\Facades\DB;
 
 class KategoriController extends Controller
 {
-    public function index()
+    protected string $table = 'kategori';
+    protected string $pk = 'idkategori';
+
+    public function index(Request $request)
     {
-        $kategori = Kategori::orderBy('idkategori')->get();
-        return view('admin.kategori.index', compact('kategori'));
+        $isTrash = $request->query('trash');
+
+        $kategori = DB::table($this->table)
+            ->select($this->pk, 'nama_kategori', 'deleted_at')
+            ->when(!$isTrash, fn ($q) => $q->whereNull('deleted_at'))
+            ->when($isTrash, fn ($q) => $q->whereNotNull('deleted_at'))
+            ->orderBy($this->pk)
+            ->get();
+
+        return view('admin.kategori.index', compact('kategori', 'isTrash'));
     }
 
     public function create()
@@ -22,25 +32,26 @@ class KategoriController extends Controller
 
     public function store(Request $request)
     {
-        $validatedData = $this->validateKategori($request);
+        $validated = $this->validateKategori($request);
 
-        try {
-            $this->createKategori($validatedData);
-            return redirect()->route('admin.kategori.index')
-                             ->with('success', 'Kategori berhasil ditambahkan.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.kategori.index')
-                             ->with('error', 'Gagal menambahkan kategori: ' . $e->getMessage());
-        }
+        DB::table($this->table)->insert([
+            'nama_kategori' => $this->formatNama($validated['nama_kategori']),
+        ]);
+
+        return redirect()->route('admin.kategori.index')
+            ->with('success', 'Kategori berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
-        $kategori = Kategori::where('idkategori', $id)->first();
+        $kategori = DB::table($this->table)
+            ->where($this->pk, $id)
+            ->whereNull('deleted_at')
+            ->first();
 
-        if (! $kategori) {
+        if (!$kategori) {
             return redirect()->route('admin.kategori.index')
-                             ->with('error', 'Data tidak ditemukan.');
+                ->with('error', 'Data tidak ditemukan.');
         }
 
         return view('admin.kategori.edit', compact('kategori'));
@@ -48,32 +59,42 @@ class KategoriController extends Controller
 
     public function update(Request $request, $id)
     {
-        $validatedData = $this->validateKategori($request, $id);
+        $validated = $this->validateKategori($request, $id);
 
-        try {
-            Kategori::where('idkategori', $id)->update([
-                'nama_kategori' => $this->formatNamaKategori($validatedData['nama_kategori']),
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'nama_kategori' => $this->formatNama($validated['nama_kategori']),
             ]);
 
-            return redirect()->route('admin.kategori.index')
-                             ->with('success', 'Kategori berhasil diperbarui.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.kategori.index')
-                             ->with('error', 'Gagal memperbarui kategori: ' . $e->getMessage());
-        }
+        return redirect()->route('admin.kategori.index')
+            ->with('success', 'Kategori berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
-        try {
-            Kategori::where('idkategori', $id)->delete();
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'deleted_at' => now(),
+                'deleted_by' => auth()->id(),
+            ]);
 
-            return redirect()->route('admin.kategori.index')
-                             ->with('success', 'Kategori berhasil dihapus.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.kategori.index')
-                             ->with('error', 'Gagal menghapus kategori: ' . $e->getMessage());
-        }
+        return redirect()->route('admin.kategori.index')
+            ->with('success', 'Kategori berhasil dihapus.');
+    }
+
+    public function restore($id)
+    {
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'deleted_at' => null,
+                'deleted_by' => null,
+            ]);
+
+        return redirect()->route('admin.kategori.index', ['trash' => 1])
+            ->with('success', 'Kategori berhasil direstore.');
     }
 
     protected function validateKategori(Request $request, $id = null)
@@ -83,30 +104,11 @@ class KategoriController extends Controller
             : 'unique:kategori,nama_kategori';
 
         return $request->validate([
-            'nama_kategori' => [
-                'required',
-                'string',
-                'max:255',
-                'min:3',
-                $uniqueRule,
-            ],
-        ], [
-            'nama_kategori.required' => 'Nama kategori wajib diisi.',
-            'nama_kategori.string'   => 'Nama kategori harus berupa teks.',
-            'nama_kategori.max'      => 'Nama kategori maksimal 255 karakter.',
-            'nama_kategori.min'      => 'Nama kategori minimal 3 karakter.',
-            'nama_kategori.unique'   => 'Nama kategori sudah ada.',
+            'nama_kategori' => ['required', 'string', 'min:3', 'max:255', $uniqueRule],
         ]);
     }
 
-    protected function createKategori(array $data)
-    {
-        return Kategori::create([
-            'nama_kategori' => $this->formatNamaKategori($data['nama_kategori']),
-        ]);
-    }
-
-    protected function formatNamaKategori($nama)
+    protected function formatNama(string $nama): string
     {
         return trim(ucwords(strtolower($nama)));
     }

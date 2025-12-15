@@ -9,120 +9,168 @@ use Exception;
 
 class JenisHewanController extends Controller
 {
+    /* =====================================================
+     * INDEX
+     * ===================================================== */
     public function index()
     {
+        // data aktif
         $jenisHewan = DB::table('jenis_hewan')
-            ->select('idjenis_hewan', 'nama_jenis_hewan')
+            ->whereNull('deleted_at')
             ->orderBy('idjenis_hewan')
             ->get();
 
-        return view('admin.jenis-hewan.index', compact('jenisHewan'));
+        // data terhapus (soft delete)
+        $jenisHewanDeleted = DB::table('jenis_hewan')
+            ->whereNotNull('deleted_at')
+            ->orderBy('deleted_at', 'desc')
+            ->get();
+
+        return view('admin.jenis-hewan.index', compact(
+            'jenisHewan',
+            'jenisHewanDeleted'
+        ));
     }
 
+    /* =====================================================
+     * CREATE
+     * ===================================================== */
     public function create()
     {
         return view('admin.jenis-hewan.create');
     }
 
+    /* =====================================================
+     * STORE
+     * ===================================================== */
     public function store(Request $request)
     {
-        $validatedData = $this->validateJenisHewan($request);
+        $data = $this->validateJenisHewan($request);
 
         try {
-            $this->createJenisHewan($validatedData);
+            DB::table('jenis_hewan')->insert([
+                'nama_jenis_hewan' => $this->formatNamaJenisHewan($data['nama_jenis_hewan']),
+                'deleted_at' => null,
+                'deleted_by' => null,
+            ]);
 
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('success', 'Jenis hewan berhasil ditambahkan.');
+            return redirect()
+                ->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil ditambahkan.');
         } catch (Exception $e) {
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('error', 'Gagal menambahkan jenis hewan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menambah data: ' . $e->getMessage());
         }
     }
 
+    /* =====================================================
+     * EDIT
+     * ===================================================== */
     public function edit($id)
     {
         $hewan = DB::table('jenis_hewan')
-            ->select('idjenis_hewan', 'nama_jenis_hewan')
             ->where('idjenis_hewan', $id)
+            ->whereNull('deleted_at')
             ->first();
 
         if (! $hewan) {
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('error', 'Data tidak ditemukan.');
+            return redirect()
+                ->route('admin.jenis-hewan.index')
+                ->with('error', 'Data tidak ditemukan.');
         }
 
         return view('admin.jenis-hewan.edit', compact('hewan'));
     }
 
+    /* =====================================================
+     * UPDATE
+     * ===================================================== */
     public function update(Request $request, $id)
     {
-        $validatedData = $this->validateJenisHewan($request, $id);
+        $data = $this->validateJenisHewan($request, $id);
 
         try {
             DB::table('jenis_hewan')
                 ->where('idjenis_hewan', $id)
                 ->update([
-                    'nama_jenis_hewan' => $this->formatNamaJenisHewan($validatedData['nama_jenis_hewan']),
-                    // 'updated_at' => now(), // dihapus
+                    'nama_jenis_hewan' => $this->formatNamaJenisHewan($data['nama_jenis_hewan']),
                 ]);
 
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('success', 'Jenis hewan berhasil diubah.');
+            return redirect()
+                ->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil diperbarui.');
         } catch (Exception $e) {
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('error', 'Gagal mengubah jenis hewan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal update data: ' . $e->getMessage());
         }
     }
 
+    /* =====================================================
+     * SOFT DELETE
+     * ===================================================== */
     public function destroy($id)
     {
         try {
             DB::table('jenis_hewan')
                 ->where('idjenis_hewan', $id)
-                ->delete();
+                ->update([
+                    'deleted_at' => now(),
+                    'deleted_by' => auth()->id(),
+                ]);
 
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('success', 'Jenis hewan berhasil dihapus.');
+            return redirect()
+                ->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil dihapus (soft delete).');
         } catch (Exception $e) {
-            return redirect()->route('admin.jenis-hewan.index')
-                             ->with('error', 'Gagal menghapus jenis hewan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
-    protected function createJenisHewan(array $data)
+    /* =====================================================
+     * RESTORE
+     * ===================================================== */
+    public function restore($id)
     {
         try {
-            return DB::table('jenis_hewan')->insert([
-                'nama_jenis_hewan' => $this->formatNamaJenisHewan($data['nama_jenis_hewan']),
-            ]);
+            DB::table('jenis_hewan')
+                ->where('idjenis_hewan', $id)
+                ->update([
+                    'deleted_at' => null,
+                    'deleted_by' => null,
+                ]);
+
+            return redirect()
+                ->route('admin.jenis-hewan.index')
+                ->with('success', 'Jenis hewan berhasil direstore.');
         } catch (Exception $e) {
-            throw new \Exception('Gagal menyimpan data jenis hewan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal restore data: ' . $e->getMessage());
         }
     }
 
+    /* =====================================================
+     * VALIDATION
+     * ===================================================== */
     protected function validateJenisHewan(Request $request, $id = null)
     {
-        $uniqueRule = $id ?
-            'unique:jenis_hewan,nama_jenis_hewan,' . $id . ',idjenis_hewan' :
-            'unique:jenis_hewan,nama_jenis_hewan';
+        $uniqueRule = $id
+            ? 'unique:jenis_hewan,nama_jenis_hewan,' . $id . ',idjenis_hewan'
+            : 'unique:jenis_hewan,nama_jenis_hewan';
 
         return $request->validate([
             'nama_jenis_hewan' => [
                 'required',
                 'string',
-                'max:255',
                 'min:3',
+                'max:255',
                 $uniqueRule,
             ],
         ], [
             'nama_jenis_hewan.required' => 'Nama jenis hewan wajib diisi.',
-            'nama_jenis_hewan.string'   => 'Nama jenis hewan harus berupa teks.',
-            'nama_jenis_hewan.max'      => 'Nama jenis hewan maksimal 255 karakter.',
-            'nama_jenis_hewan.min'      => 'Nama jenis hewan minimal 3 karakter.',
             'nama_jenis_hewan.unique'   => 'Nama jenis hewan sudah ada.',
         ]);
     }
 
+    /* =====================================================
+     * FORMAT NAMA
+     * ===================================================== */
     protected function formatNamaJenisHewan($nama)
     {
         return trim(ucwords(strtolower($nama)));

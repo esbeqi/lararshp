@@ -12,26 +12,30 @@ class RasHewanController extends Controller
     protected string $table = 'ras_hewan';
     protected string $pk = 'idras_hewan';
 
-    public function index()
+    public function index(Request $request)
     {
+        $isTrash = $request->query('trash');
+
         $rasHewan = DB::table($this->table . ' as r')
+            ->leftJoin('jenis_hewan as j', 'r.idjenis_hewan', '=', 'j.idjenis_hewan')
             ->select(
                 'r.' . $this->pk,
                 'r.nama_ras',
-                'r.idjenis_hewan',
+                'r.deleted_at',
                 'j.nama_jenis_hewan'
             )
-            ->leftJoin('jenis_hewan as j', 'r.idjenis_hewan', '=', 'j.idjenis_hewan')
+            ->when(!$isTrash, fn ($q) => $q->whereNull('r.deleted_at'))
+            ->when($isTrash, fn ($q) => $q->whereNotNull('r.deleted_at'))
             ->orderBy('r.' . $this->pk)
             ->get();
 
-        return view('admin.ras-hewan.index', compact('rasHewan'));
+        return view('admin.ras-hewan.index', compact('rasHewan', 'isTrash'));
     }
 
     public function create()
     {
         $jenisHewan = DB::table('jenis_hewan')
-            ->select('idjenis_hewan', 'nama_jenis_hewan')
+            ->whereNull('deleted_at')
             ->orderBy('nama_jenis_hewan')
             ->get();
 
@@ -42,31 +46,28 @@ class RasHewanController extends Controller
     {
         $validated = $this->validateRasHewan($request);
 
-        try {
-            $this->createRasHewan($validated);
+        DB::table($this->table)->insert([
+            'idjenis_hewan' => $validated['idjenis_hewan'],
+            'nama_ras'      => $this->formatNama($validated['nama_ras']),
+        ]);
 
-            return redirect()->route('admin.ras-hewan.index')
-                             ->with('success', 'Ras hewan berhasil ditambahkan.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.ras-hewan.create')
-                             ->withInput()
-                             ->with('error', 'Gagal menambahkan ras hewan: ' . $e->getMessage());
-        }
+        return redirect()->route('admin.ras-hewan.index')
+            ->with('success', 'Ras hewan berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
         $ras = DB::table($this->table)
             ->where($this->pk, $id)
+            ->whereNull('deleted_at')
             ->first();
 
-        if (! $ras) {
-            return redirect()->route('admin.ras-hewan.index')
-                             ->with('error', 'Data tidak ditemukan.');
+        if (!$ras) {
+            return redirect()->route('admin.ras-hewan.index')->with('error', 'Data tidak ditemukan.');
         }
 
         $jenisHewan = DB::table('jenis_hewan')
-            ->select('idjenis_hewan', 'nama_jenis_hewan')
+            ->whereNull('deleted_at')
             ->orderBy('nama_jenis_hewan')
             ->get();
 
@@ -77,78 +78,56 @@ class RasHewanController extends Controller
     {
         $validated = $this->validateRasHewan($request, $id);
 
-        try {
-            DB::table($this->table)
-                ->where($this->pk, $id)
-                ->update($this->prepareUpdate($validated));
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'idjenis_hewan' => $validated['idjenis_hewan'],
+                'nama_ras'      => $this->formatNama($validated['nama_ras']),
+            ]);
 
-            return redirect()->route('admin.ras-hewan.index')
-                             ->with('success', 'Ras hewan berhasil diubah.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.ras-hewan.edit', $id)
-                             ->withInput()
-                             ->with('error', 'Gagal mengubah ras hewan: ' . $e->getMessage());
-        }
+        return redirect()->route('admin.ras-hewan.index')
+            ->with('success', 'Ras hewan berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
-        try {
-            DB::table($this->table)
-                ->where($this->pk, $id)
-                ->delete();
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'deleted_at' => now(),
+                'deleted_by' => auth()->id(),
+            ]);
 
-            return redirect()->route('admin.ras-hewan.index')
-                             ->with('success', 'Ras hewan berhasil dihapus.');
-        } catch (Exception $e) {
-            return redirect()->route('admin.ras-hewan.index')
-                             ->with('error', 'Gagal menghapus ras hewan: ' . $e->getMessage());
-        }
+        return redirect()->route('admin.ras-hewan.index')
+            ->with('success', 'Ras hewan berhasil dihapus.');
+    }
+
+    public function restore($id)
+    {
+        DB::table($this->table)
+            ->where($this->pk, $id)
+            ->update([
+                'deleted_at' => null,
+                'deleted_by' => null,
+            ]);
+
+        return redirect()->route('admin.ras-hewan.index', ['trash' => 1])
+            ->with('success', 'Ras hewan berhasil direstore.');
     }
 
     protected function validateRasHewan(Request $request, $id = null)
     {
-        $uniqueRule = $id
+        $unique = $id
             ? 'unique:ras_hewan,nama_ras,' . $id . ',idras_hewan'
             : 'unique:ras_hewan,nama_ras';
 
         return $request->validate([
             'idjenis_hewan' => ['required', 'exists:jenis_hewan,idjenis_hewan'],
-            'nama_ras' => ['required', 'string', 'min:3', 'max:255', $uniqueRule],
-        ], [
-            'idjenis_hewan.required' => 'Jenis hewan wajib dipilih.',
-            'idjenis_hewan.exists' => 'Jenis hewan tidak valid.',
-            'nama_ras.required' => 'Nama ras hewan wajib diisi.',
-            'nama_ras.string' => 'Nama ras harus berupa teks.',
-            'nama_ras.min' => 'Nama ras minimal 3 karakter.',
-            'nama_ras.max' => 'Nama ras maksimal 255 karakter.',
-            'nama_ras.unique' => 'Nama ras hewan sudah ada.',
+            'nama_ras' => ['required', 'string', 'min:3', 'max:255', $unique],
         ]);
     }
 
-    protected function createRasHewan(array $data)
-    {
-        try {
-            return DB::table($this->table)->insert([
-                'idjenis_hewan' => $data['idjenis_hewan'],
-                'nama_ras' => $this->formatNamaRas($data['nama_ras']),
-                // 'created_at' => now(), // aktifkan jika tabel punya timestamps
-            ]);
-        } catch (Exception $e) {
-            throw new \Exception('Gagal menyimpan data ras hewan: ' . $e->getMessage());
-        }
-    }
-
-    protected function prepareUpdate(array $data): array
-    {
-        return [
-            'idjenis_hewan' => $data['idjenis_hewan'],
-            'nama_ras' => $this->formatNamaRas($data['nama_ras']),
-            // 'updated_at' => now(),
-        ];
-    }
-
-    protected function formatNamaRas($nama)
+    protected function formatNama(string $nama): string
     {
         return trim(ucwords(strtolower($nama)));
     }

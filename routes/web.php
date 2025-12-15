@@ -99,6 +99,8 @@ Route::middleware('isAdministrator')->prefix('admin')->name('admin.')->group(fun
     Route::patch('/jenis-hewan/{id}', [JenisHewanController::class, 'update']);
     Route::delete('/jenis-hewan/{id}', [JenisHewanController::class, 'destroy'])->name('jenis-hewan.destroy');
 
+    Route::put('/jenis-hewan/{id}/restore', [JenisHewanController::class, 'restore'])->name('jenis-hewan.restore');
+
     // Ras Hewan
     Route::get('/ras-hewan', [RasHewanController::class, 'index'])->name('ras-hewan.index');
     Route::get('/ras-hewan/create', [RasHewanController::class, 'create'])->name('ras-hewan.create');
@@ -107,6 +109,8 @@ Route::middleware('isAdministrator')->prefix('admin')->name('admin.')->group(fun
     Route::put('/ras-hewan/{id}', [RasHewanController::class, 'update'])->name('ras-hewan.update');
     Route::patch('/ras-hewan/{id}', [RasHewanController::class, 'update']);
     Route::delete('/ras-hewan/{id}', [RasHewanController::class, 'destroy'])->name('ras-hewan.destroy');
+
+    Route::put('/ras-hewan/{id}/restore', [RasHewanController::class, 'restore'])->name('ras-hewan.restore');
 
     // Pemilik
     Route::get('/pemilik', [PemilikController::class, 'index'])->name('pemilik.index');
@@ -134,6 +138,7 @@ Route::middleware('isAdministrator')->prefix('admin')->name('admin.')->group(fun
     Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
     Route::patch('/kategori/{id}', [KategoriController::class, 'update']); // optional patch
     Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+    Route::put('/kategori/{id}/restore', [KategoriController::class, 'restore'])->name('kategori.restore');
 
     // Kategori Klinis
     Route::get('/kategori-klinis', [KategoriKlinisController::class, 'index'])->name('kategori-klinis.index');
